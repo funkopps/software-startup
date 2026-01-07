@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Laravel\Fortify\Features;
+use App\Http\Controllers\MixAnalysisController;
 
 Route::get('/', function () {
     return Inertia::render('Welcome', [
@@ -14,4 +15,12 @@ Route::get('dashboard', function () {
     return Inertia::render('Dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
-require __DIR__.'/settings.php';
+Route::get('/mix-analyzer', function () {
+    return Inertia::render('MixAnalyzer', [
+        'title' => 'Mix Analyzer MVP',
+    ]);
+});
+
+Route::post('/analyze-mix', [MixAnalysisController::class, 'analyze']);
+
+require __DIR__ . '/settings.php';
