@@ -7,6 +7,9 @@ use Illuminate\Support\Arr;
 
 class Music extends SerializableValueObject
 {
+    /**
+     * @link https://docs.acrcloud.com/metadata/music
+     */
     public function __construct(
         public int $score,
         public string $title,
