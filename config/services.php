@@ -35,4 +35,8 @@ return [
         ],
     ],
 
+    'acrcloud' => [
+        'access_key' => env('ACRC_ACCESS_KEY'),
+        'secret_key' => env('ACRC_SECRET_KEY'),
+    ],
 ];

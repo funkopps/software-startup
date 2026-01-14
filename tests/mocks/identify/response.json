@@ -1,0 +1,82 @@
+{
+  "result_type": 0,
+  "status": {
+    "version": "1.0",
+    "msg": "Success",
+    "code": 0
+  },
+  "cost_time": 0.48600006103516,
+  "metadata": {
+    "timestamp_utc": "2026-01-07 13:20:49",
+    "music": [
+      {
+        "play_offset_ms": 90800,
+        "external_ids": {
+          "isrc": "GX3Q92466512",
+          "upc": "5063483371437"
+        },
+        "external_metadata": {
+          "deezer": {
+            "album": {
+              "name": "open this wall",
+              "id": "572668161"
+            },
+            "track": {
+              "id": "2748889301",
+              "name": "free fall"
+            },
+            "artists": [
+              {
+                "name": "Berlioz",
+                "id": "208429867"
+              }
+            ]
+          },
+          "spotify": {
+            "album": {
+              "name": "open this wall",
+              "id": "1NjMj1u1EQxn8oESg40bPA"
+            },
+            "track": {
+              "id": "5Y5yeohdp8olNuxyBAQeWp",
+              "name": "free fall"
+            },
+            "artists": [
+              {
+                "name": "berlioz",
+                "id": "3k3RY7kR8f0vp8Cq27P141"
+              }
+            ]
+          },
+          "youtube": {
+            "vid": "v37D6hnNIWk"
+          }
+        },
+        "result_from": 1,
+        "label": "berlioz",
+        "artists": [
+          {
+            "name": "berlioz"
+          }
+        ],
+        "score": 100,
+        "release_date": "2024-07-12",
+        "genres": [
+          {
+            "name": "Dance"
+          }
+        ],
+        "title": "free fall",
+        "album": {
+          "name": "open this wall"
+        },
+        "duration_ms": 204160,
+        "sample_end_time_offset_ms": 6560,
+        "db_begin_time_offset_ms": 83080,
+        "db_end_time_offset_ms": 89640,
+        "sample_begin_time_offset_ms": 0,
+        "acrid": "f4551664a8da63a92d630b686d6aff91"
+      }
+    ]
+  }
+}
