@@ -6,3 +6,4 @@
 6. php artisan key:generate
 7. php artisan migrate
 8. php artisan serve -> ga naar url
+9. Installeer ffmpeg -> brew install ffmpeg
