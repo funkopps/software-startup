@@ -7,6 +7,7 @@ use App\Services\Api\Identify\IdentifyServiceInterface;
 use App\ValueObjects\Api\Identify\Response;
 use App\ValueObjects\Api\Identify\Music;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Storage;
 
 class MixAnalysisController extends Controller
 {
@@ -21,20 +22,32 @@ class MixAnalysisController extends Controller
     {
         $request->validate([
             'soundcloud_url' => ['required', 'url'],
+            'audio_file' => [
+                'required',
+                'file',
+                'mimetypes:audio/wav,audio/mpeg,audio/mp3,audio/x-wav',
+                'max:10240',
+            ],
         ]);
 
-        // Placeholder local file path
-        $audioFilePath = base_path('tests/mocks/identify/berlioz_sample.wav');
+        $uploadedFile = $request->file('audio_file');
+
+        // In storage/app/private/uploads
+        $path = $uploadedFile->store('uploads');
+
+        $audioFilePath = storage_path('app/private/' . $path);
 
         if (!file_exists($audioFilePath)) {
             return response()->json([
-                'error' => 'Sample audio file not found',
+                'error' => 'Uploaded audio file could not be stored',
             ], 500);
         }
 
         $response = $this->identifyService->identify($audioFilePath);
 
         $tracklist = $this->mapAcrResponseToTracklist($response);
+
+        Storage::delete($path);
 
         return response()->json([
             'source_url' => $request->soundcloud_url,

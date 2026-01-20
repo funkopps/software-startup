@@ -11,6 +11,14 @@
                     placeholder="SoundCloud mix URL"
                     required
                 />
+
+                <input
+                    type="file"
+                    accept="audio/*"
+                    @change="onFileChange"
+                    required
+                />
+
                 <button :disabled="loading">
                     {{ loading ? 'Analyzing…' : 'Analyze' }}
                 </button>
@@ -66,6 +74,8 @@ interface AnalyzeResponse {
     tracks: Track[]
 }
 
+const audioFile = ref<File | null>(null)
+const audioObjectUrl = ref<string | null>(null)
 const soundcloudUrl = ref('')
 const tracks = ref<Track[]>([])
 const loading = ref(false)
@@ -76,40 +86,61 @@ const isPlaying = ref(false)
 const waveformEl = ref<HTMLDivElement | null>(null)
 let wavesurfer: WaveSurfer | null = null
 
-const MOCK_AUDIO_URL = '/audio/berlioz_sample.wav'
+//const MOCK_AUDIO_URL = '/audio/berlioz_sample.wav'
+
+const onFileChange = (event: Event) => {
+    const target = event.target as HTMLInputElement
+    const file = target.files?.[0] ?? null
+
+    if (!file) return
+
+    audioFile.value = file
+
+    if (audioObjectUrl.value) {
+        URL.revokeObjectURL(audioObjectUrl.value)
+    }
+
+    audioObjectUrl.value = URL.createObjectURL(file)
+}
 
 const analyzeMix = async () => {
+    if (!audioFile.value) {
+        error.value = 'Please upload an audio file'
+        return
+    }
+
     loading.value = true
     error.value = null
     tracks.value = []
     ready.value = false
 
     try {
+        const formData = new FormData()
+        formData.append('soundcloud_url', soundcloudUrl.value)
+        formData.append('audio_file', audioFile.value)
+
         const response = await fetch('/analyze-mix', {
             method: 'POST',
             credentials: 'same-origin',
             headers: {
-                'Content-Type': 'application/json',
                 'X-CSRF-TOKEN':
                     document
                         .querySelector<HTMLMetaElement>('meta[name="csrf-token"]')
                         ?.content ?? '',
             },
-            body: JSON.stringify({
-                soundcloud_url: soundcloudUrl.value,
-            }),
+            body: formData,
         })
+
+        if (!response.ok) {
+            throw new Error('Analysis failed')
+        }
 
         const data: AnalyzeResponse = await response.json()
         tracks.value = data.tracks
 
         ready.value = true
         await nextTick()
-        await nextTick()
-        
-        console.log('About to init waveform, element:', waveformEl.value)
         initWaveform()
-        ready.value = true
     } catch (e) {
         error.value = e instanceof Error ? e.message : 'Unknown error'
     } finally {
@@ -117,22 +148,13 @@ const analyzeMix = async () => {
     }
 }
 
+
 onMounted(() => {
     console.log('Component mounted')
 })
 
 const initWaveform = () => {
-    console.log('initWaveform called')
-    console.log('waveformEl.value:', waveformEl.value)
-    
-    if (!waveformEl.value) {
-        console.error('Waveform element not found!')
-        return
-    }
-    
-    console.log('Creating WaveSurfer instance...')
-
-    if (!waveformEl.value) return
+    if (!waveformEl.value || !audioObjectUrl.value) return
 
     wavesurfer?.destroy()
 
@@ -145,17 +167,14 @@ const initWaveform = () => {
         cursorWidth: 1,
     })
 
-    wavesurfer.on('error', (err) => {
-        error.value = `Audio load failed: ${err}`
-        console.error('WaveSurfer error:', err)
-    })
-
     wavesurfer.on('play', () => (isPlaying.value = true))
     wavesurfer.on('pause', () => (isPlaying.value = false))
+    wavesurfer.on('error', (err) => {
+        error.value = `Audio load failed: ${err}`
+    })
 
-    wavesurfer.load(MOCK_AUDIO_URL)
+    wavesurfer.load(audioObjectUrl.value)
 }
-
 
 const togglePlayback = () => {
     wavesurfer?.playPause()
@@ -177,6 +196,10 @@ const formatTime = (ms: number | null): string => {
 
 onBeforeUnmount(() => {
     wavesurfer?.destroy()
+
+    if (audioObjectUrl.value) {
+        URL.revokeObjectURL(audioObjectUrl.value)
+    }
 })
 </script>
 
