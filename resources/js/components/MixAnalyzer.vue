@@ -123,44 +123,73 @@ const onFileChange = async (event: Event) => {
 
     if (!file) return
 
-    audioFile.value = file
+    loading.value = true
+    error.value = null
 
-    const formData = new FormData()
-    formData.append('audio_file', file)
+    try {
+        // Delete previous uploaded file
+        if (uploadedFilePath.value) {
+            await fetch('/delete-audio', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN':
+                        document
+                            .querySelector<HTMLMetaElement>('meta[name="csrf-token"]')
+                            ?.content ?? '',
+                },
+                body: JSON.stringify({
+                    file_path: uploadedFilePath.value,
+                }),
+            })
 
-    const response = await fetch('/upload-audio', {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: {
-            'X-CSRF-TOKEN':
-                document
-                    .querySelector<HTMLMetaElement>('meta[name="csrf-token"]')
-                    ?.content ?? '',
-        },
-        body: formData,
-    })
+            uploadedFilePath.value = null
+        }
 
-    if (!response.ok) {
-        error.value = 'File upload failed'
-        return
+        // Upload new file
+        audioFile.value = file
+
+        const formData = new FormData()
+        formData.append('audio_file', file)
+
+        const response = await fetch('/upload-audio', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+                'X-CSRF-TOKEN':
+                    document
+                        .querySelector<HTMLMetaElement>('meta[name="csrf-token"]')
+                        ?.content ?? '',
+            },
+            body: formData,
+        })
+
+        if (!response.ok) {
+            throw new Error('File upload failed')
+        }
+
+        const data = await response.json()
+        uploadedFilePath.value = data.file_path
+
+        if (audioObjectUrl.value) {
+            URL.revokeObjectURL(audioObjectUrl.value)
+        }
+
+        audioObjectUrl.value = URL.createObjectURL(file)
+
+        previewReady.value = true
+        analysisDone.value = false
+        tracks.value = []
+
+        await nextTick()
+        initWaveform()
+    } catch (e) {
+        error.value = e instanceof Error ? e.message : 'Unknown error'
+    } finally {
+        loading.value = false
     }
-
-    const data = await response.json()
-    uploadedFilePath.value = data.file_path
-
-    // Local preview
-    if (audioObjectUrl.value) {
-        URL.revokeObjectURL(audioObjectUrl.value)
-    }
-
-    audioObjectUrl.value = URL.createObjectURL(file)
-
-    previewReady.value = true
-    analysisDone.value = false
-    tracks.value = []
-
-    await nextTick()
-    initWaveform()
 }
 
 const analyzeMix = async () => {

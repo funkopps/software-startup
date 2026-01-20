@@ -32,6 +32,25 @@ class MixAnalysisController extends Controller
         ]);
     }
 
+    public function delete(Request $request): JsonResponse
+    {
+        $request->validate([
+            'file_path' => ['required', 'string'],
+        ]);
+
+        $relativePath = $request->file_path;
+
+        if (!str_starts_with($relativePath, 'uploads/')) {
+            abort(403, 'Invalid file path');
+        }
+
+        if (Storage::exists($relativePath)) {
+            Storage::delete($relativePath);
+        }
+
+        return response()->json(['deleted' => true]);
+    }
+
     public function analyze(Request $request): JsonResponse
     {
         $request->validate([
@@ -54,7 +73,7 @@ class MixAnalysisController extends Controller
 
         $tracklist = $this->mapAcrResponseToTracklist($response);
 
-        Storage::delete($relativePath);
+        //Storage::delete($relativePath);
 
         return response()->json([
             'source_url' => $request->soundcloud_url,
