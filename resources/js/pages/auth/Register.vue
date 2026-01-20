@@ -26,7 +26,9 @@ import { Form, Head } from '@inertiajs/vue3';
         >
             <div class="grid gap-6">
                 <div class="grid gap-2">
-                    <Label for="name">Name</Label>
+                    <Label for="name" class="text-neutral-700 dark:text-white/80">
+                        Name
+                    </Label>
                     <Input
                         id="name"
                         type="text"
@@ -36,12 +38,15 @@ import { Form, Head } from '@inertiajs/vue3';
                         autocomplete="name"
                         name="name"
                         placeholder="Full name"
+                        class="caret-[#1b1b18] dark:caret-[#EDEDEC]"
                     />
                     <InputError :message="errors.name" />
                 </div>
 
                 <div class="grid gap-2">
-                    <Label for="email">Email address</Label>
+                    <Label for="email" class="text-neutral-700 dark:text-white/80">
+                        Email address
+                    </Label>
                     <Input
                         id="email"
                         type="email"
@@ -50,12 +55,18 @@ import { Form, Head } from '@inertiajs/vue3';
                         autocomplete="email"
                         name="email"
                         placeholder="email@example.com"
+                        class="caret-[#1b1b18] dark:caret-[#EDEDEC]"
                     />
                     <InputError :message="errors.email" />
                 </div>
 
                 <div class="grid gap-2">
-                    <Label for="password">Password</Label>
+                    <Label
+                        for="password"
+                        class="text-neutral-700 dark:text-white/80"
+                    >
+                        Password
+                    </Label>
                     <Input
                         id="password"
                         type="password"
@@ -64,12 +75,18 @@ import { Form, Head } from '@inertiajs/vue3';
                         autocomplete="new-password"
                         name="password"
                         placeholder="Password"
+                        class="caret-[#1b1b18] dark:caret-[#EDEDEC]"
                     />
                     <InputError :message="errors.password" />
                 </div>
 
                 <div class="grid gap-2">
-                    <Label for="password_confirmation">Confirm password</Label>
+                    <Label
+                        for="password_confirmation"
+                        class="text-neutral-700 dark:text-white/80"
+                    >
+                        Confirm password
+                    </Label>
                     <Input
                         id="password_confirmation"
                         type="password"
@@ -78,6 +95,7 @@ import { Form, Head } from '@inertiajs/vue3';
                         autocomplete="new-password"
                         name="password_confirmation"
                         placeholder="Confirm password"
+                        class="caret-[#1b1b18] dark:caret-[#EDEDEC]"
                     />
                     <InputError :message="errors.password_confirmation" />
                 </div>

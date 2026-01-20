@@ -18,7 +18,7 @@ class Response extends SerializableValueObject
     public static function fromJson(array $array): static
     {
         /** @var array $musicArr */
-        $musicArr = Arr::get($array, 'metadata.music');
+        $musicArr = Arr::get($array, 'metadata.music', []);
         $music = Arr::map($musicArr, fn (array $data) => Music::fromArray($data));
 
         return new self($music);
