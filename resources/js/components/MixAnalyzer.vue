@@ -4,7 +4,7 @@
         <header>
             <h1>MixLens Analyzer</h1>
 
-            <form @submit.prevent="analyzeMix">
+            <form @submit.prevent>
                 <input
                     type="url"
                     v-model="soundcloudUrl"
@@ -18,10 +18,6 @@
                     @change="onFileChange"
                     required
                 />
-
-                <button :disabled="loading">
-                    {{ loading ? 'Analyzing…' : 'Analyze' }}
-                </button>
             </form>
         </header>
 
@@ -29,7 +25,7 @@
         <p v-if="error" class="error">{{ error }}</p>
 
         <!-- Player -->
-        <section v-if="ready" class="player">
+        <section v-if="previewReady" class="player">
             <button @click="togglePlayback" class="play-button">
                 <svg v-if="!isPlaying" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M8 5v14l11-7z"/>
@@ -42,8 +38,37 @@
             <div ref="waveformEl" class="waveform"></div>
         </section>
 
+        <section v-if="previewReady" class="interval">
+            <label>
+                Start (seconds)
+                <input
+                    type="number"
+                    min="0"
+                    step="0.1"
+                    v-model.number="startTime"
+                />
+            </label>
+
+            <label>
+                End (seconds)
+                <input
+                    type="number"
+                    min="0"
+                    step="0.1"
+                    v-model.number="endTime"
+                />
+            </label>
+
+            <button
+                @click="analyzeMix"
+                :disabled="loading || startTime === null || endTime === null"
+            >
+                {{ loading ? 'Analyzing…' : (analysisDone ? 'Re-analyze selection' : 'Analyze selection') }}
+            </button>
+        </section>
+
         <!-- Tracklist -->
-        <section v-if="tracks.length" class="tracklist">
+        <section v-if="analysisDone && tracks.length" class="tracklist">
             <div
                 v-for="(track, index) in tracks"
                 :key="index"
@@ -80,74 +105,119 @@ const soundcloudUrl = ref('')
 const tracks = ref<Track[]>([])
 const loading = ref(false)
 const error = ref<string | null>(null)
-const ready = ref(false)
 const isPlaying = ref(false)
+const previewReady = ref(false)
+const analysisDone = ref(false)
+
+const startTime = ref<number | null>(null)
+const endTime = ref<number | null>(null)
+
+const uploadedFilePath = ref<string | null>(null)
 
 const waveformEl = ref<HTMLDivElement | null>(null)
 let wavesurfer: WaveSurfer | null = null
 
-//const MOCK_AUDIO_URL = '/audio/berlioz_sample.wav'
-
-const onFileChange = (event: Event) => {
-    const target = event.target as HTMLInputElement
-    const file = target.files?.[0] ?? null
+const onFileChange = async (event: Event) => {
+    const input = event.target as HTMLInputElement
+    const file = input.files?.[0]
 
     if (!file) return
 
     audioFile.value = file
 
+    const formData = new FormData()
+    formData.append('audio_file', file)
+
+    const response = await fetch('/upload-audio', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+            'X-CSRF-TOKEN':
+                document
+                    .querySelector<HTMLMetaElement>('meta[name="csrf-token"]')
+                    ?.content ?? '',
+        },
+        body: formData,
+    })
+
+    if (!response.ok) {
+        error.value = 'File upload failed'
+        return
+    }
+
+    const data = await response.json()
+    uploadedFilePath.value = data.file_path
+
+    // Local preview
     if (audioObjectUrl.value) {
         URL.revokeObjectURL(audioObjectUrl.value)
     }
 
     audioObjectUrl.value = URL.createObjectURL(file)
+
+    previewReady.value = true
+    analysisDone.value = false
+    tracks.value = []
+
+    await nextTick()
+    initWaveform()
 }
 
 const analyzeMix = async () => {
-    if (!audioFile.value) {
-        error.value = 'Please upload an audio file'
+    if (!uploadedFilePath.value) {
+        error.value = 'No uploaded file available'
         return
     }
+
+    if (startTime.value === null || endTime.value === null) {
+        error.value = 'Please set a start and end time'
+        return
+    }
+
 
     loading.value = true
     error.value = null
     tracks.value = []
-    ready.value = false
+    analysisDone.value = false
 
     try {
-        const formData = new FormData()
-        formData.append('soundcloud_url', soundcloudUrl.value)
-        formData.append('audio_file', audioFile.value)
-
         const response = await fetch('/analyze-mix', {
             method: 'POST',
             credentials: 'same-origin',
             headers: {
+                'Content-Type': 'application/json',
                 'X-CSRF-TOKEN':
                     document
                         .querySelector<HTMLMetaElement>('meta[name="csrf-token"]')
                         ?.content ?? '',
             },
-            body: formData,
+            body: JSON.stringify({
+                soundcloud_url: soundcloudUrl.value,
+                file_path: uploadedFilePath.value,
+                start_time: startTime.value,
+                end_time: endTime.value,
+            }),
         })
+        
+        // const raw = await response.text()
+        // console.log('RAW RESPONSE:', raw)
+
+        // throw new Error('Stop here')
 
         if (!response.ok) {
-            throw new Error('Analysis failed')
+            const text = await response.text()
+            throw new Error(text)
         }
 
         const data: AnalyzeResponse = await response.json()
         tracks.value = data.tracks
-
-        ready.value = true
-        await nextTick()
-        initWaveform()
+        analysisDone.value = true
     } catch (e) {
         error.value = e instanceof Error ? e.message : 'Unknown error'
     } finally {
         loading.value = false
     }
 }
-
 
 onMounted(() => {
     console.log('Component mounted')
@@ -169,8 +239,11 @@ const initWaveform = () => {
 
     wavesurfer.on('play', () => (isPlaying.value = true))
     wavesurfer.on('pause', () => (isPlaying.value = false))
-    wavesurfer.on('error', (err) => {
-        error.value = `Audio load failed: ${err}`
+
+    wavesurfer.on('ready', () => {
+        const duration = wavesurfer!.getDuration()
+        startTime.value = 0
+        endTime.value = Math.floor(duration)
     })
 
     wavesurfer.load(audioObjectUrl.value)

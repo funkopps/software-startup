@@ -8,6 +8,7 @@ use App\ValueObjects\Api\Identify\Response;
 use App\ValueObjects\Api\Identify\Music;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 
 class MixAnalysisController extends Controller
 {
@@ -18,42 +19,49 @@ class MixAnalysisController extends Controller
         $this->identifyService = $identifyService;
     }
 
+    public function upload(Request $request): JsonResponse
+    {
+        $request->validate([
+            'audio_file' => ['required', 'file', 'mimetypes:audio/*', 'max:10240'],
+        ]);
+
+        $path = $request->file('audio_file')->store('uploads');
+
+        return response()->json([
+            'file_path' => $path,
+        ]);
+    }
+
     public function analyze(Request $request): JsonResponse
     {
         $request->validate([
             'soundcloud_url' => ['required', 'url'],
-            'audio_file' => [
-                'required',
-                'file',
-                'mimetypes:audio/wav,audio/mpeg,audio/mp3,audio/x-wav',
-                'max:10240',
-            ],
+            'file_path' => ['required', 'string'],
+            'start_time' => ['required', 'numeric', 'min:0'],
+            'end_time' => ['required', 'numeric', 'gt:start_time'],
         ]);
 
-        $uploadedFile = $request->file('audio_file');
-
-        // In storage/app/private/uploads
-        $path = $uploadedFile->store('uploads');
-
-        $audioFilePath = storage_path('app/private/' . $path);
+        $relativePath = $request->file_path;
+        $audioFilePath = Storage::path($relativePath);
 
         if (!file_exists($audioFilePath)) {
             return response()->json([
-                'error' => 'Uploaded audio file could not be stored',
-            ], 500);
+                'error' => 'Uploaded audio file not found',
+            ], 404);
         }
 
         $response = $this->identifyService->identify($audioFilePath);
 
         $tracklist = $this->mapAcrResponseToTracklist($response);
 
-        Storage::delete($path);
+        Storage::delete($relativePath);
 
         return response()->json([
             'source_url' => $request->soundcloud_url,
             'tracks' => $tracklist,
         ]);
     }
+
 
     private function mapAcrResponseToTracklist(Response $response): array
     {

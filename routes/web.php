@@ -23,4 +23,6 @@ Route::get('/mix-analyzer', function () {
 
 Route::post('/analyze-mix', [MixAnalysisController::class, 'analyze']);
 
+Route::post('/upload-audio', [MixAnalysisController::class, 'upload']);
+
 require __DIR__ . '/settings.php';
