@@ -87,6 +87,7 @@
 <script setup lang="ts">
 import { ref, onBeforeUnmount, nextTick, onMounted } from 'vue'
 import WaveSurfer from 'wavesurfer.js'
+import RegionsPlugin from 'wavesurfer.js/dist/plugins/regions.esm.js'
 
 interface Track {
     title: string
@@ -116,6 +117,8 @@ const uploadedFilePath = ref<string | null>(null)
 
 const waveformEl = ref<HTMLDivElement | null>(null)
 let wavesurfer: WaveSurfer | null = null
+let activeRegion: any = null
+
 
 const onFileChange = async (event: Event) => {
     const input = event.target as HTMLInputElement
@@ -266,13 +269,45 @@ const initWaveform = () => {
         cursorWidth: 1,
     })
 
-    wavesurfer.on('play', () => (isPlaying.value = true))
-    wavesurfer.on('pause', () => (isPlaying.value = false))
+    const regions = wavesurfer.registerPlugin(
+        RegionsPlugin.create()
+    )
+
+    regions.enableDragSelection({
+        color: 'rgba(15, 23, 42, 0.25)',
+        drag: true,
+        resize: true,
+    })
 
     wavesurfer.on('ready', () => {
         const duration = wavesurfer!.getDuration()
+
         startTime.value = 0
-        endTime.value = Math.floor(duration)
+        endTime.value = Math.min(30, duration)
+
+        activeRegion = regions.addRegion({
+            start: startTime.value,
+            end: endTime.value,
+            color: 'rgba(15, 23, 42, 0.25)',
+            drag: true,
+            resize: true,
+        })
+    })
+
+    regions.on('region-created', (region) => {
+        if (activeRegion && region.id !== activeRegion.id) {
+            activeRegion.remove()
+        }
+
+        activeRegion = region
+        startTime.value = region.start
+        endTime.value = region.end
+    })
+
+    regions.on('region-updated', (region) => {
+        activeRegion = region
+        startTime.value = region.start
+        endTime.value = region.end
     })
 
     wavesurfer.load(audioObjectUrl.value)
