@@ -16,7 +16,8 @@ class Music extends SerializableValueObject
         public string $releaseDate,
         public PlatformRecord $spotify,
     )
-    {}
+    {
+    }
 
     public static function fromArray(array $array): static
     {

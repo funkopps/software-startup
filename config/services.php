@@ -39,4 +39,8 @@ return [
         'access_key' => env('ACRC_ACCESS_KEY'),
         'secret_key' => env('ACRC_SECRET_KEY'),
     ],
+
+    'ffmpeg' => [
+        'path' => env('FFMPEG_PATH'),
+    ],
 ];
