@@ -3,14 +3,13 @@
 use Illuminate\Support\Facades\Route;
 
 Route::get('/testje', function () {
-    $a = app(\App\Actions\Audio\CutAudio::class);
+    $a = app(\App\Actions\Audio\RecognizeAudio::class);
 
-    $r = $a->run(
+    $res = $a->run(
         base_path('tests/mocks/identify/berlioz_sample.wav'),
-        storage_path('/app/private/test.wav'),
-        1,
-        3
+        0,
+        5,
     );
 
-    dd($r);
+    dd($res);
 });

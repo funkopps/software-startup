@@ -3,7 +3,6 @@
 namespace App\Actions\Audio;
 
 use App\Services\Ffmpeg;
-use Illuminate\Support\Str;
 use LogicException;
 
 final readonly class ChunkAudio
@@ -18,18 +17,19 @@ final readonly class ChunkAudio
     /**
      * @param string $path
      * @param int $chunkSize Seconds
+     * @param string $outDir Path to output directory
      * @return string[] New audio paths
      */
-    public function run(string $path, int $chunkSize): array
-    {
-        $dir = storage_path(
-            sprintf('app/private/%s', Str::random())
-        );
-        $dest = "$dir/chunk_%03d.wav";
-
-        if (! mkdir($dir)) {
+    public function run(
+        string $path,
+        int $chunkSize,
+        string $outDir,
+    ): array {
+        if (! is_dir($outDir) && ! mkdir($outDir)) {
             throw new LogicException('Could not create chunk dir');
         }
+
+        $dest = "$outDir/chunk_%03d.wav";
 
         $command = sprintf(
             '-y -i %s -f segment -segment_time %s -c copy %s',
@@ -40,6 +40,6 @@ final readonly class ChunkAudio
 
         $this->ffmpeg->run($command);
 
-        return glob($dir . '/*');
+        return glob($outDir . '/*');
     }
 }

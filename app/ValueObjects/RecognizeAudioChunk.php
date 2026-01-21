@@ -4,15 +4,15 @@ namespace App\ValueObjects;
 
 use App\ValueObjects\Api\Identify\Music;
 
-class RecogniseAudioChunk extends SerializableValueObject
+class RecognizeAudioChunk extends SerializableValueObject
 {
     /**
      * @param int $timestamp
-     * @param Music[] $music
+     * @param Music $music
      */
     public function __construct(
         public int $timestamp,
-        public array $music,
+        public Music $music,
     )
     {
     }
