@@ -19,11 +19,12 @@ final readonly class RecognizeAudio
     private const int AUDIO_CHUNK_SIZE = 3;
 
     public function __construct(
-        private CutAudio $cutAudioAction,
-        private ChunkAudio $chunkAudioAction,
+        private CutAudio                 $cutAudioAction,
+        private ChunkAudio               $chunkAudioAction,
         private IdentifyServiceInterface $service,
     )
-    {}
+    {
+    }
 
     /**
      * @param string $path Audio file path
@@ -33,11 +34,12 @@ final readonly class RecognizeAudio
      */
     public function run(
         string $path,
-        int $start,
-        int $end,
-    ): array {
+        int    $start,
+        int    $end,
+    ): array
+    {
         $dirPath = storage_path('app/private/' . Str::random());
-        if (! mkdir($dirPath)) {
+        if (!mkdir($dirPath)) {
             throw new LogicException('Could not create working directory');
         }
 
@@ -61,9 +63,9 @@ final readonly class RecognizeAudio
         File::deleteDirectory($dirPath);
 
         return $out
-            ->flatMap(fn (array $music, int $timestamp) => Arr::map(
+            ->flatMap(fn(array $music, int $timestamp) => Arr::map(
                 $music,
-                fn (Music $music) => new RecognizeAudioChunk(
+                fn(Music $music) => new RecognizeAudioChunk(
                     $timestamp,
                     $music,
                 ),
@@ -78,9 +80,10 @@ final readonly class RecognizeAudio
     private function buildSamples(
         string $audioPath,
         string $dirPath,
-        int $start,
-        int $end,
-    ): Collection {
+        int    $start,
+        int    $end,
+    ): Collection
+    {
         $cutAudioPath = "$dirPath/cut_audio.wav";
         $this->cutAudioAction->run($audioPath, $cutAudioPath, $start, $end);
 
@@ -94,7 +97,7 @@ final readonly class RecognizeAudio
 
         // Key the array w/ correct timestamps (relative to entire track)
         $chunkedAudioPaths->keyBy(
-            fn ($_, int $i) => $start + (self::AUDIO_CHUNK_SIZE * $i)
+            fn($_, int $i) => $start + (self::AUDIO_CHUNK_SIZE * $i)
         );
 
         return $this->evenlySpaceItems($chunkedAudioPaths);
@@ -112,15 +115,15 @@ final readonly class RecognizeAudio
             return $items;
         }
 
-        $keys   = $items->keys()->values();
+        $keys = $items->keys()->values();
         $values = $items->values();
 
         $step = ($n - 1) / ($sampleSize - 1);
 
         $result = [];
         for ($i = 0; $i < $sampleSize; $i++) {
-            $index = (int) round($i * $step);
-            $key   = $keys[$index];
+            $index = (int)round($i * $step);
+            $key = $keys[$index];
             $result[$key] = $values[$index];
         }
 
