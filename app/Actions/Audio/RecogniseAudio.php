@@ -5,14 +5,14 @@ namespace App\Actions\Audio;
 use App\Exceptions\Api\ApiException;
 use App\Services\Api\Identify\IdentifyServiceInterface;
 use App\ValueObjects\Api\Identify\Music;
-use App\ValueObjects\RecognizeAudioChunk;
+use App\ValueObjects\RecogniseAudioChunk;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 use LogicException;
 
-final readonly class RecognizeAudio
+final readonly class RecogniseAudio
 {
     private const int MAX_SAMPLE_SIZE = 3;
 
@@ -30,7 +30,7 @@ final readonly class RecognizeAudio
      * @param string $path Audio file path
      * @param int $start Start time (seconds)
      * @param int $end End time (seconds)
-     * @return RecognizeAudioChunk[]
+     * @return RecogniseAudioChunk[]
      */
     public function run(
         string $path,
@@ -65,7 +65,7 @@ final readonly class RecognizeAudio
         return $out
             ->flatMap(fn(array $music, int $timestamp) => Arr::map(
                 $music,
-                fn(Music $music) => new RecognizeAudioChunk(
+                fn(Music $music) => new RecogniseAudioChunk(
                     $timestamp,
                     $music,
                 ),

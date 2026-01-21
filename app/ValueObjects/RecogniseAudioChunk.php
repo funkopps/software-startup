@@ -4,7 +4,7 @@ namespace App\ValueObjects;
 
 use App\ValueObjects\Api\Identify\Music;
 
-class RecognizeAudioChunk extends SerializableValueObject
+class RecogniseAudioChunk extends SerializableValueObject
 {
     /**
      * @param int $timestamp
