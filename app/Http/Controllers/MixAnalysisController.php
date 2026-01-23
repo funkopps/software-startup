@@ -3,21 +3,18 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Services\Api\Identify\IdentifyServiceInterface;
 use App\ValueObjects\Api\Identify\Response;
 use App\ValueObjects\Api\Identify\Music;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use App\Actions\Audio\RecogniseAudio;
 
 class MixAnalysisController extends Controller
 {
-    private IdentifyServiceInterface $identifyService;
-
-    public function __construct(IdentifyServiceInterface $identifyService)
-    {
-        $this->identifyService = $identifyService;
-    }
+    public function __construct(
+        private readonly RecogniseAudio $recogniseAudio,
+    ) {}
 
     public function upload(Request $request): JsonResponse
     {
@@ -53,14 +50,15 @@ class MixAnalysisController extends Controller
 
     public function analyze(Request $request): JsonResponse
     {
-        $request->validate([
+        $validated = $request->validate([
             'soundcloud_url' => ['required', 'url'],
             'file_path' => ['required', 'string'],
             'start_time' => ['required', 'numeric', 'min:0'],
             'end_time' => ['required', 'numeric', 'gt:start_time'],
         ]);
 
-        $relativePath = $request->file_path;
+        $relativePath = $validated['file_path'];
+
         $audioFilePath = Storage::path($relativePath);
 
         if (!file_exists($audioFilePath)) {
@@ -69,18 +67,32 @@ class MixAnalysisController extends Controller
             ], 404);
         }
 
-        $response = $this->identifyService->identify($audioFilePath);
+        $chunks = $this->recogniseAudio->run(
+            path: $audioFilePath,
+            start: (int) $validated['start_time'],
+            end: (int) $validated['end_time'],
+        );
 
-        $tracklist = $this->mapAcrResponseToTracklist($response);
+        Log::debug('Recognised chunks', [
+            'count' => count($chunks),
+            'first' => $chunks[0] ?? null,
+        ]);
 
-        //Storage::delete($relativePath);
 
         return response()->json([
-            'source_url' => $request->soundcloud_url,
-            'tracks' => $tracklist,
+            'source_url' => $validated['soundcloud_url'],
+            'tracks' => collect($chunks)->map(fn($chunk) => [
+                'timestamp' => $chunk->timestamp,
+                'title' => $chunk->music->title,
+                'artist' => $chunk->music->artist,
+                'album' => null,
+                'release_date' => $chunk->music->releaseDate,
+                'score' => $chunk->music->score,
+                'acrid' => $chunk->music->acrid,
+                'spotify_track_id' => $chunk->music->spotify->track->id ?? null,
+            ])->values(),
         ]);
     }
-
 
     private function mapAcrResponseToTracklist(Response $response): array
     {

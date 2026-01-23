@@ -79,6 +79,7 @@
                 <span class="title">
                     {{ track.artist }} – {{ track.title }}
                 </span>
+                <span class="score">{{ track.score }}</span>
             </div>
         </section>
     </div>
@@ -94,6 +95,7 @@ interface Track {
     artist: string
     album: string | null
     timestamp: number | null
+    score: number | null
 }
 
 interface AnalyzeResponse {
@@ -424,6 +426,10 @@ button {
 }
 
 .title {
+    font-weight: 500;
+}
+
+.score {
     font-weight: 500;
 }
 

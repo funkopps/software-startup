@@ -7,6 +7,7 @@ use App\Exceptions\Api\ApiFailedException;
 use App\ValueObjects\Api\Identify\Response;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use LogicException;
 
 class IdentifyService implements IdentifyServiceInterface
@@ -71,6 +72,8 @@ class IdentifyService implements IdentifyServiceInterface
         }
 
         $result = $response->json();
+
+        // Log::debug('ACR response', $result);
 
         return Response::fromJson($result);
     }

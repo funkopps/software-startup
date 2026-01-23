@@ -25,9 +25,10 @@ final readonly class Ffmpeg
 
         if ($exitCode !== 0) {
             throw new LogicException(sprintf(
-                'Chunking audio failed (%s): %s',
+                "FFmpeg failed (%s):\n%s\nCommand:\n%s",
                 $exitCode,
                 implode(PHP_EOL, $outputLines),
+                $fullCommand,
             ));
         }
 
