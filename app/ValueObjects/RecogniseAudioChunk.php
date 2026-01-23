@@ -8,11 +8,11 @@ class RecogniseAudioChunk extends SerializableValueObject
 {
     /**
      * @param int $timestamp
-     * @param Music[] $music
+     * @param Music $music
      */
     public function __construct(
         public int $timestamp,
-        public array $music,
+        public Music $music,
     )
     {
     }
