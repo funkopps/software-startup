@@ -78,7 +78,6 @@ class MixAnalysisController extends Controller
             'first' => $chunks[0] ?? null,
         ]);
 
-
         return response()->json([
             'source_url' => $validated['soundcloud_url'],
             'tracks' => collect($chunks)->map(fn($chunk) => [

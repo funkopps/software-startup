@@ -73,7 +73,7 @@ class IdentifyService implements IdentifyServiceInterface
 
         $result = $response->json();
 
-        // Log::debug('ACR response', $result);
+        Log::debug('ACR response', $result);
 
         return Response::fromJson($result);
     }
