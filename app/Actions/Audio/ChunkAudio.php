@@ -9,10 +9,7 @@ final readonly class ChunkAudio
 {
     public function __construct(
         private Ffmpeg $ffmpeg,
-    )
-    {
-
-    }
+    ) {}
 
     /**
      * @param string $path
@@ -32,10 +29,10 @@ final readonly class ChunkAudio
         $dest = "$outDir/chunk_%03d.wav";
 
         $command = sprintf(
-            '-y -i %s -f segment -segment_time %s -c copy %s',
-            escapeshellarg($path),
+            '-y -i "%s" -f segment -segment_time %d -c copy "%s"',
+            $path,
             $chunkSize,
-            escapeshellcmd($dest),
+            $dest,
         );
 
         $this->ffmpeg->run($command);

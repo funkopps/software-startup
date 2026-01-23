@@ -6,9 +6,7 @@ use App\Services\Ffmpeg;
 
 final readonly class CutAudio
 {
-    public function __construct(private Ffmpeg $ffmpeg)
-    {
-    }
+    public function __construct(private Ffmpeg $ffmpeg) {}
 
     /**
      * @param string $inputPath
@@ -24,7 +22,7 @@ final readonly class CutAudio
         int $end,
     ): string {
         $this->ffmpeg->run(sprintf(
-            '-y -ss %s -to %s -i %s -c copy %s',
+            '-y -ss %d -to %d -i "%s" -c copy "%s"',
             $start,
             $end,
             $inputPath,

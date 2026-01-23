@@ -4,16 +4,20 @@
         <header>
             <h1>MixLens Analyzer</h1>
 
-            <form @submit.prevent="analyzeMix">
+            <form @submit.prevent>
                 <input
                     type="url"
                     v-model="soundcloudUrl"
                     placeholder="SoundCloud mix URL"
                     required
                 />
-                <button :disabled="loading">
-                    {{ loading ? 'Analyzing…' : 'Analyze' }}
-                </button>
+
+                <input
+                    type="file"
+                    accept="audio/*"
+                    @change="onFileChange"
+                    required
+                />
             </form>
         </header>
 
@@ -21,7 +25,7 @@
         <p v-if="error" class="error">{{ error }}</p>
 
         <!-- Player -->
-        <section v-if="ready" class="player">
+        <section v-if="previewReady" class="player">
             <button @click="togglePlayback" class="play-button">
                 <svg v-if="!isPlaying" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M8 5v14l11-7z"/>
@@ -34,8 +38,37 @@
             <div ref="waveformEl" class="waveform"></div>
         </section>
 
+        <section v-if="previewReady" class="interval">
+            <label>
+                Start (seconds)
+                <input
+                    type="number"
+                    min="0"
+                    step="0.1"
+                    v-model.number="startTime"
+                />
+            </label>
+
+            <label>
+                End (seconds)
+                <input
+                    type="number"
+                    min="0"
+                    step="0.1"
+                    v-model.number="endTime"
+                />
+            </label>
+
+            <button
+                @click="analyzeMix"
+                :disabled="loading || startTime === null || endTime === null"
+            >
+                {{ loading ? 'Analyzing…' : (analysisDone ? 'Re-analyze selection' : 'Analyze selection') }}
+            </button>
+        </section>
+
         <!-- Tracklist -->
-        <section v-if="tracks.length" class="tracklist">
+        <section v-if="analysisDone && tracks.length" class="tracklist">
             <div
                 v-for="(track, index) in tracks"
                 :key="index"
@@ -46,6 +79,7 @@
                 <span class="title">
                     {{ track.artist }} – {{ track.title }}
                 </span>
+                <span class="score">{{ track.score }}</span>
             </div>
         </section>
     </div>
@@ -54,35 +88,131 @@
 <script setup lang="ts">
 import { ref, onBeforeUnmount, nextTick, onMounted } from 'vue'
 import WaveSurfer from 'wavesurfer.js'
+import RegionsPlugin from 'wavesurfer.js/dist/plugins/regions.esm.js'
 
 interface Track {
     title: string
     artist: string
     album: string | null
     timestamp: number | null
+    score: number | null
 }
 
 interface AnalyzeResponse {
     tracks: Track[]
 }
 
+const audioFile = ref<File | null>(null)
+const audioObjectUrl = ref<string | null>(null)
 const soundcloudUrl = ref('')
 const tracks = ref<Track[]>([])
 const loading = ref(false)
 const error = ref<string | null>(null)
-const ready = ref(false)
 const isPlaying = ref(false)
+const previewReady = ref(false)
+const analysisDone = ref(false)
+
+const startTime = ref<number | null>(null)
+const endTime = ref<number | null>(null)
+
+const uploadedFilePath = ref<string | null>(null)
 
 const waveformEl = ref<HTMLDivElement | null>(null)
 let wavesurfer: WaveSurfer | null = null
+let activeRegion: any = null
 
-const MOCK_AUDIO_URL = '/audio/berlioz_sample.wav'
+
+const onFileChange = async (event: Event) => {
+    const input = event.target as HTMLInputElement
+    const file = input.files?.[0]
+
+    if (!file) return
+
+    loading.value = true
+    error.value = null
+
+    try {
+        // Delete previous uploaded file
+        if (uploadedFilePath.value) {
+            await fetch('/delete-audio', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN':
+                        document
+                            .querySelector<HTMLMetaElement>('meta[name="csrf-token"]')
+                            ?.content ?? '',
+                },
+                body: JSON.stringify({
+                    file_path: uploadedFilePath.value,
+                }),
+            })
+
+            uploadedFilePath.value = null
+        }
+
+        // Upload new file
+        audioFile.value = file
+
+        const formData = new FormData()
+        formData.append('audio_file', file)
+
+        const response = await fetch('/upload-audio', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+                'X-CSRF-TOKEN':
+                    document
+                        .querySelector<HTMLMetaElement>('meta[name="csrf-token"]')
+                        ?.content ?? '',
+            },
+            body: formData,
+        })
+
+        if (!response.ok) {
+            throw new Error('File upload failed')
+        }
+
+        const data = await response.json()
+        uploadedFilePath.value = data.file_path
+
+        if (audioObjectUrl.value) {
+            URL.revokeObjectURL(audioObjectUrl.value)
+        }
+
+        audioObjectUrl.value = URL.createObjectURL(file)
+
+        previewReady.value = true
+        analysisDone.value = false
+        tracks.value = []
+
+        await nextTick()
+        initWaveform()
+    } catch (e) {
+        error.value = e instanceof Error ? e.message : 'Unknown error'
+    } finally {
+        loading.value = false
+    }
+}
 
 const analyzeMix = async () => {
+    if (!uploadedFilePath.value) {
+        error.value = 'No uploaded file available'
+        return
+    }
+
+    if (startTime.value === null || endTime.value === null) {
+        error.value = 'Please set a start and end time'
+        return
+    }
+
+
     loading.value = true
     error.value = null
     tracks.value = []
-    ready.value = false
+    analysisDone.value = false
 
     try {
         const response = await fetch('/analyze-mix', {
@@ -97,19 +227,25 @@ const analyzeMix = async () => {
             },
             body: JSON.stringify({
                 soundcloud_url: soundcloudUrl.value,
+                file_path: uploadedFilePath.value,
+                start_time: startTime.value,
+                end_time: endTime.value,
             }),
         })
+        
+        // const raw = await response.text()
+        // console.log('RAW RESPONSE:', raw)
+
+        // throw new Error('Stop here')
+
+        if (!response.ok) {
+            const text = await response.text()
+            throw new Error(text)
+        }
 
         const data: AnalyzeResponse = await response.json()
         tracks.value = data.tracks
-
-        ready.value = true
-        await nextTick()
-        await nextTick()
-        
-        console.log('About to init waveform, element:', waveformEl.value)
-        initWaveform()
-        ready.value = true
+        analysisDone.value = true
     } catch (e) {
         error.value = e instanceof Error ? e.message : 'Unknown error'
     } finally {
@@ -122,17 +258,7 @@ onMounted(() => {
 })
 
 const initWaveform = () => {
-    console.log('initWaveform called')
-    console.log('waveformEl.value:', waveformEl.value)
-    
-    if (!waveformEl.value) {
-        console.error('Waveform element not found!')
-        return
-    }
-    
-    console.log('Creating WaveSurfer instance...')
-
-    if (!waveformEl.value) return
+    if (!waveformEl.value || !audioObjectUrl.value) return
 
     wavesurfer?.destroy()
 
@@ -145,17 +271,49 @@ const initWaveform = () => {
         cursorWidth: 1,
     })
 
-    wavesurfer.on('error', (err) => {
-        error.value = `Audio load failed: ${err}`
-        console.error('WaveSurfer error:', err)
+    const regions = wavesurfer.registerPlugin(
+        RegionsPlugin.create()
+    )
+
+    regions.enableDragSelection({
+        color: 'rgba(15, 23, 42, 0.25)',
+        drag: true,
+        resize: true,
     })
 
-    wavesurfer.on('play', () => (isPlaying.value = true))
-    wavesurfer.on('pause', () => (isPlaying.value = false))
+    wavesurfer.on('ready', () => {
+        const duration = wavesurfer!.getDuration()
 
-    wavesurfer.load(MOCK_AUDIO_URL)
+        startTime.value = 0
+        endTime.value = Math.min(30, duration)
+
+        activeRegion = regions.addRegion({
+            start: startTime.value,
+            end: endTime.value,
+            color: 'rgba(15, 23, 42, 0.25)',
+            drag: true,
+            resize: true,
+        })
+    })
+
+    regions.on('region-created', (region) => {
+        if (activeRegion && region.id !== activeRegion.id) {
+            activeRegion.remove()
+        }
+
+        activeRegion = region
+        startTime.value = region.start
+        endTime.value = region.end
+    })
+
+    regions.on('region-updated', (region) => {
+        activeRegion = region
+        startTime.value = region.start
+        endTime.value = region.end
+    })
+
+    wavesurfer.load(audioObjectUrl.value)
 }
-
 
 const togglePlayback = () => {
     wavesurfer?.playPause()
@@ -177,6 +335,10 @@ const formatTime = (ms: number | null): string => {
 
 onBeforeUnmount(() => {
     wavesurfer?.destroy()
+
+    if (audioObjectUrl.value) {
+        URL.revokeObjectURL(audioObjectUrl.value)
+    }
 })
 </script>
 
@@ -264,6 +426,10 @@ button {
 }
 
 .title {
+    font-weight: 500;
+}
+
+.score {
     font-weight: 500;
 }
 

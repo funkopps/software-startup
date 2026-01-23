@@ -3,42 +3,94 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Services\Api\Identify\IdentifyServiceInterface;
 use App\ValueObjects\Api\Identify\Response;
 use App\ValueObjects\Api\Identify\Music;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
+use App\Actions\Audio\RecogniseAudio;
 
 class MixAnalysisController extends Controller
 {
-    private IdentifyServiceInterface $identifyService;
+    public function __construct(
+        private readonly RecogniseAudio $recogniseAudio,
+    ) {}
 
-    public function __construct(IdentifyServiceInterface $identifyService)
+    public function upload(Request $request): JsonResponse
     {
-        $this->identifyService = $identifyService;
+        $request->validate([
+            'audio_file' => ['required', 'file', 'mimetypes:audio/*', 'max:10240'],
+        ]);
+
+        $path = $request->file('audio_file')->store('uploads');
+
+        return response()->json([
+            'file_path' => $path,
+        ]);
+    }
+
+    public function delete(Request $request): JsonResponse
+    {
+        $request->validate([
+            'file_path' => ['required', 'string'],
+        ]);
+
+        $relativePath = $request->file_path;
+
+        if (!str_starts_with($relativePath, 'uploads/')) {
+            abort(403, 'Invalid file path');
+        }
+
+        if (Storage::exists($relativePath)) {
+            Storage::delete($relativePath);
+        }
+
+        return response()->json(['deleted' => true]);
     }
 
     public function analyze(Request $request): JsonResponse
     {
-        $request->validate([
+        $validated = $request->validate([
             'soundcloud_url' => ['required', 'url'],
+            'file_path' => ['required', 'string'],
+            'start_time' => ['required', 'numeric', 'min:0'],
+            'end_time' => ['required', 'numeric', 'gt:start_time'],
         ]);
 
-        // Placeholder local file path
-        $audioFilePath = base_path('tests/mocks/identify/berlioz_sample.wav');
+        $relativePath = $validated['file_path'];
+
+        $audioFilePath = Storage::path($relativePath);
 
         if (!file_exists($audioFilePath)) {
             return response()->json([
-                'error' => 'Sample audio file not found',
-            ], 500);
+                'error' => 'Uploaded audio file not found',
+            ], 404);
         }
 
-        $response = $this->identifyService->identify($audioFilePath);
+        $chunks = $this->recogniseAudio->run(
+            path: $audioFilePath,
+            start: (int) $validated['start_time'],
+            end: (int) $validated['end_time'],
+        );
 
-        $tracklist = $this->mapAcrResponseToTracklist($response);
+        Log::debug('Recognised chunks', [
+            'count' => count($chunks),
+            'first' => $chunks[0] ?? null,
+        ]);
+
 
         return response()->json([
-            'source_url' => $request->soundcloud_url,
-            'tracks' => $tracklist,
+            'source_url' => $validated['soundcloud_url'],
+            'tracks' => collect($chunks)->map(fn($chunk) => [
+                'timestamp' => $chunk->timestamp,
+                'title' => $chunk->music->title,
+                'artist' => $chunk->music->artist,
+                'album' => null,
+                'release_date' => $chunk->music->releaseDate,
+                'score' => $chunk->music->score,
+                'acrid' => $chunk->music->acrid,
+                'spotify_track_id' => $chunk->music->spotify->track->id ?? null,
+            ])->values(),
         ]);
     }
 

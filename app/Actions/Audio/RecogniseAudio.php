@@ -10,6 +10,7 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Log;
 use LogicException;
 
 final readonly class RecogniseAudio
@@ -22,9 +23,7 @@ final readonly class RecogniseAudio
         private CutAudio                 $cutAudioAction,
         private ChunkAudio               $chunkAudioAction,
         private IdentifyServiceInterface $service,
-    )
-    {
-    }
+    ) {}
 
     /**
      * @param string $path Audio file path
@@ -36,8 +35,7 @@ final readonly class RecogniseAudio
         string $path,
         int    $start,
         int    $end,
-    ): array
-    {
+    ): array {
         $dirPath = storage_path('app/private/' . Str::random());
         if (!mkdir($dirPath)) {
             throw new LogicException('Could not create working directory');
@@ -46,9 +44,22 @@ final readonly class RecogniseAudio
         $samplePaths = $this->buildSamples($path, $dirPath, $start, $end);
         $out = collect();
 
+        // Log::debug('Sample paths', [
+        //     'samples' => $samplePaths->all(),
+        // ]);
+
         foreach ($samplePaths as $timestamp => $samplePath) {
+            // Log::debug('Recognising sample', [
+            //     'timestamp' => $timestamp,
+            //     'path' => $samplePath,
+            //     'exists' => file_exists($samplePath),
+            // ]);
             try {
                 $response = $this->service->identify($samplePath);
+                // Log::debug('Identify returned music count', [
+                //     'timestamp' => $timestamp,
+                //     'count' => count($response->music),
+                // ]);
             } catch (ApiException $e) {
                 throw new LogicException(
                     'Failed to recognize audio; API failed.',
@@ -56,8 +67,13 @@ final readonly class RecogniseAudio
                 );
             }
 
-            $out[$timestamp] = $response->music;
+            $out[$timestamp] = $response->music ?? [];
         }
+
+        // Log::debug('Raw recognition output', [
+        //     'out_keys' => $out->keys()->all(),
+        //     'out_counts' => $out->map(fn($v) => count($v))->all(),
+        // ]);
 
         // Clean up files
         File::deleteDirectory($dirPath);
@@ -70,7 +86,13 @@ final readonly class RecogniseAudio
                     $music,
                 ),
             ))
-            ->unique('spotify.track.id')
+            ->unique(
+                fn(RecogniseAudioChunk $chunk) =>
+                $chunk->music->spotify->track->id
+                    ?? $chunk->music->acrid
+                    ?? null
+            )
+            ->values()
             ->all();
     }
 
@@ -82,8 +104,7 @@ final readonly class RecogniseAudio
         string $dirPath,
         int    $start,
         int    $end,
-    ): Collection
-    {
+    ): Collection {
         $cutAudioPath = "$dirPath/cut_audio.wav";
         $this->cutAudioAction->run($audioPath, $cutAudioPath, $start, $end);
 
