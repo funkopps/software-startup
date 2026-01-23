@@ -12,10 +12,6 @@ use App\Actions\Audio\RecogniseAudio;
 
 class MixAnalysisController extends Controller
 {
-    public function __construct(
-        private readonly RecogniseAudio $recogniseAudio,
-    ) {}
-
     public function upload(Request $request): JsonResponse
     {
         $request->validate([
@@ -48,7 +44,7 @@ class MixAnalysisController extends Controller
         return response()->json(['deleted' => true]);
     }
 
-    public function analyze(Request $request): JsonResponse
+    public function analyze(Request $request, RecogniseAudio $recogniseAudio): JsonResponse
     {
         $validated = $request->validate([
             'soundcloud_url' => ['required', 'url'],
@@ -67,7 +63,7 @@ class MixAnalysisController extends Controller
             ], 404);
         }
 
-        $chunks = $this->recogniseAudio->run(
+        $chunks = $recogniseAudio->run(
             path: $audioFilePath,
             start: (int) $validated['start_time'],
             end: (int) $validated['end_time'],
