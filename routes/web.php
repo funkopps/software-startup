@@ -21,6 +21,18 @@ Route::get('/mix-analyzer', function () {
     ]);
 });
 
+Route::get('/contact', function () {
+    return Inertia::render('Contact');
+})->name('contact');
+
+Route::get('/about', function () {
+    return Inertia::render('About');
+})->name('about');
+
+Route::get('/support', function () {
+    return Inertia::render('Support');
+})->name('support');
+
 Route::post('/analyze-mix', [MixAnalysisController::class, 'analyze']);
 
 Route::post('/upload-audio', [MixAnalysisController::class, 'upload']);
