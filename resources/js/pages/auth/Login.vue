@@ -41,7 +41,9 @@ defineProps<{
         >
             <div class="grid gap-6">
                 <div class="grid gap-2">
-                    <Label for="email">Email address</Label>
+                    <Label for="email" class="text-neutral-700 dark:text-white/80">
+                        Email address
+                    </Label>
                     <Input
                         id="email"
                         type="email"
@@ -51,13 +53,19 @@ defineProps<{
                         :tabindex="1"
                         autocomplete="email"
                         placeholder="email@example.com"
+                        class="caret-[#1b1b18] dark:caret-[#EDEDEC]"
                     />
                     <InputError :message="errors.email" />
                 </div>
 
                 <div class="grid gap-2">
                     <div class="flex items-center justify-between">
-                        <Label for="password">Password</Label>
+                        <Label
+                            for="password"
+                            class="text-neutral-700 dark:text-white/80"
+                        >
+                            Password
+                        </Label>
                         <TextLink
                             v-if="canResetPassword"
                             :href="request()"
@@ -75,12 +83,16 @@ defineProps<{
                         :tabindex="2"
                         autocomplete="current-password"
                         placeholder="Password"
+                        class="caret-[#1b1b18] dark:caret-[#EDEDEC]"
                     />
                     <InputError :message="errors.password" />
                 </div>
 
                 <div class="flex items-center justify-between">
-                    <Label for="remember" class="flex items-center space-x-3">
+                    <Label
+                        for="remember"
+                        class="flex items-center space-x-3 text-neutral-700 dark:text-white/80"
+                    >
                         <Checkbox id="remember" name="remember" :tabindex="3" />
                         <span>Remember me</span>
                     </Label>
