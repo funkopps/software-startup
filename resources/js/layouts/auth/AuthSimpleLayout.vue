@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AppLogoIcon from '@/components/AppLogoIcon.vue';
 import { home } from '@/routes';
 import { Link } from '@inertiajs/vue3';
 
@@ -9,21 +10,33 @@ defineProps<{
 </script>
 
 <template>
-    <div class="flex min-h-svh flex-col bg-background text-foreground">
-        <header
-            class="h-16 w-full rounded-b-xl"
-            style="background: radial-gradient(120% 80% at 0% 0%, rgba(255, 142, 61, 0.6) 0%, rgba(255, 142, 61, 0) 55%), radial-gradient(120% 80% at 100% 0%, rgba(167, 76, 255, 0.6) 0%, rgba(167, 76, 255, 0) 55%), radial-gradient(140% 120% at 50% 100%, rgba(255, 106, 0, 0.5) 0%, rgba(255, 106, 0, 0) 60%), linear-gradient(120deg, #5a2a82 0%, #ff7a2d 55%, #7a2cbf 100%);"
-        />
-        <div class="flex flex-1 flex-col px-6 py-10">
-            <div class="flex justify-center pb-6 pt-16">
-                <Link :href="home()" class="text-8xl font-bold text-white">
-                    mindwave
-                </Link>
-            </div>
-            <div class="flex flex-1 items-center justify-center">
-                <div class="w-full max-w-sm">
-                    <slot />
+    <div
+        class="flex min-h-svh flex-col items-center justify-center gap-6 bg-background p-6 md:p-10"
+    >
+        <div class="w-full max-w-sm">
+            <div class="flex flex-col gap-8">
+                <div class="flex flex-col items-center gap-4">
+                    <Link
+                        :href="home()"
+                        class="flex flex-col items-center gap-2 font-medium"
+                    >
+                        <div
+                            class="mb-1 flex h-9 w-9 items-center justify-center rounded-md"
+                        >
+                            <AppLogoIcon
+                                class="size-9 fill-current text-[var(--foreground)] dark:text-white"
+                            />
+                        </div>
+                        <span class="sr-only">{{ title }}</span>
+                    </Link>
+                    <div class="space-y-2 text-center">
+                        <h1 class="text-xl font-medium">{{ title }}</h1>
+                        <p class="text-center text-sm text-muted-foreground">
+                            {{ description }}
+                        </p>
+                    </div>
                 </div>
+                <slot />
             </div>
         </div>
     </div>

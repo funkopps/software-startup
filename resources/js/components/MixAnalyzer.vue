@@ -1,20 +1,8 @@
 <template>
     <div class="mixlens-analyzer">
-        <div class="analyzer-header">
-            <!-- Header -->
-            <header>
-                <form @submit.prevent="analyzeMix">
-                    <input
-                        type="url"
-                        v-model="soundcloudUrl"
-                        placeholder="SoundCloud mix URL"
-                        required
-                    />
-                    <button class="analyze-button" :disabled="loading">
-                        {{ loading ? 'Analyzing…' : 'Analyze' }}
-                    </button>
-                </form>
-            </header>
+        <!-- Header -->
+        <header>
+            <h1>MixLens Analyzer</h1>
 
             <form @submit.prevent>
                 <input
@@ -33,8 +21,8 @@
             </form>
         </header>
 
-                <div ref="waveformEl" class="waveform"></div>
-            </div>
+        <!-- Error -->
+        <p v-if="error" class="error">{{ error }}</p>
 
         <!-- Player -->
         <section v-if="previewReady" class="player">
@@ -227,17 +215,9 @@ const analyzeMix = async () => {
     analysisDone.value = false
 
     try {
-        console.log('[MixAnalyzer] sending request')
-        const controller = new AbortController()
-        const timeoutId = window.setTimeout(() => {
-            console.warn('[MixAnalyzer] request timeout, aborting')
-            controller.abort()
-        }, 15000)
-
         const response = await fetch('/analyze-mix', {
             method: 'POST',
             credentials: 'same-origin',
-            signal: controller.signal,
             headers: {
                 'Content-Type': 'application/json',
                 'X-CSRF-TOKEN':
@@ -263,26 +243,18 @@ const analyzeMix = async () => {
             throw new Error(text)
         }
 
-        window.clearTimeout(timeoutId)
-        console.log('[MixAnalyzer] response received', {
-            status: response.status,
-            ok: response.ok,
-        })
         const data: AnalyzeResponse = await response.json()
-        console.log('[MixAnalyzer] response data', data)
         tracks.value = data.tracks
         analysisDone.value = true
     } catch (e) {
-        console.error('[MixAnalyzer] analyzeMix error', e)
         error.value = e instanceof Error ? e.message : 'Unknown error'
     } finally {
-        console.log('[MixAnalyzer] analyzeMix finally')
         loading.value = false
     }
 }
 
 onMounted(() => {
-    console.log('[MixAnalyzer] Component mounted')
+    console.log('Component mounted')
 })
 
 const initWaveform = () => {
@@ -292,8 +264,8 @@ const initWaveform = () => {
 
     wavesurfer = WaveSurfer.create({
         container: waveformEl.value,
-        waveColor: '#ffd9c2',
-        progressColor: '#ff7a2d',
+        waveColor: '#cbd5e1',
+        progressColor: '#0f172a',
         height: 96,
         barWidth: 2,
         cursorWidth: 1,
@@ -373,7 +345,7 @@ onBeforeUnmount(() => {
 <style scoped>
 .mixlens-analyzer {
     max-width: 960px;
-    margin: 0 auto;
+    margin: 2rem auto;
     font-family: system-ui, sans-serif;
 }
 
@@ -389,49 +361,14 @@ form {
 input {
     flex: 1;
     padding: 0.6rem;
-    border: 1px solid #d1d5db;
-    border-radius: 999px;
-    padding-left: 1.1rem;
-}
-
-input::placeholder {
-    color: #9ca3af;
 }
 
 button {
     padding: 0.6rem 1rem;
 }
 
-.analyze-button {
-    background-color: #ff7a2d;
-    color: #0a0a0a;
-    border: none;
-    border-radius: 999px;
-    cursor: pointer;
-}
-
-.analyze-button:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-}
-
-.analyzer-results {
-    margin-top: 3.5rem;
-    padding: 1.5rem 1.75rem;
-    background: #1f1f1f;
-    border: 1px solid #ffffff;
-    border-radius: 24px;
-    box-shadow: 0 10px 24px rgba(255, 255, 255, 0.25);
-    min-height: 180px;
-}
-
-.analyzer-results.is-empty {
-    opacity: 0;
-    pointer-events: none;
-}
-
 .player {
-    margin: 0 0 1rem;
+    margin: 1.5rem 0;
     display: flex;
     align-items: center;
     gap: 1rem;
@@ -442,8 +379,8 @@ button {
     height: 48px;
     min-width: 48px;
     border-radius: 50%;
-    background-color: #ff7a2d;
-    color: #0a0a0a;
+    background-color: #0f172a;
+    color: white;
     border: none;
     cursor: pointer;
     display: flex;
@@ -454,8 +391,7 @@ button {
 }
 
 .play-button:hover {
-    background-color: #ff984f;
-    color: #0a0a0a;
+    background-color: #1e293b;
 }
 
 .play-button svg {
@@ -468,9 +404,8 @@ button {
 }
 
 .tracklist {
-    border-top: 1px solid #111827;
-    margin-top: 0.75rem;
-    padding-top: 0.75rem;
+    border-top: 1px solid #e5e7eb;
+    margin-top: 1.5rem;
 }
 
 .track {
