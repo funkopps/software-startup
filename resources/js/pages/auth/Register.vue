@@ -12,11 +12,11 @@ import { Form, Head } from '@inertiajs/vue3';
 </script>
 
 <template>
-    <AuthBase
-        title="Create an account"
-        description="Enter your details below to create your account"
-    >
+    <AuthBase>
         <Head title="Register" />
+        <template #header>
+            <h1 class="text-3xl font-semibold">Register</h1>
+        </template>
 
         <Form
             v-bind="store.form()"

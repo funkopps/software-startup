@@ -13,25 +13,17 @@ import { request } from '@/routes/password';
 import { Form, Head } from '@inertiajs/vue3';
 
 defineProps<{
-    status?: string;
     canResetPassword: boolean;
     canRegister: boolean;
 }>();
 </script>
 
 <template>
-    <AuthBase
-        title="Log in to your account"
-        description="Enter your email and password below to log in"
-    >
+    <AuthBase>
         <Head title="Log in" />
-
-        <div
-            v-if="status"
-            class="mb-4 text-center text-sm font-medium text-green-600"
-        >
-            {{ status }}
-        </div>
+        <template #header>
+            <h1 class="text-3xl font-semibold">Log in</h1>
+        </template>
 
         <Form
             v-bind="store.form()"
