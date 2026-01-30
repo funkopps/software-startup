@@ -47,8 +47,8 @@ class MixAnalysisController extends Controller
     public function analyze(Request $request, RecogniseAudio $recogniseAudio): JsonResponse
     {
         $validated = $request->validate([
-            'soundcloud_url' => ['required', 'url'],
-            'file_path' => ['required', 'string'],
+            'soundcloud_url' => ['nullable', 'url', 'required_without:file_path'],
+            'file_path' => ['nullable', 'string', 'required_without:soundcloud_url'],
             'start_time' => ['required', 'numeric', 'min:0'],
             'end_time' => ['required', 'numeric', 'gt:start_time'],
         ]);

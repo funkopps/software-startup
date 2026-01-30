@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { home, login, register } from '@/routes';
+import { home, login } from '@/routes';
 import { Link } from '@inertiajs/vue3';
+import UserDropdown from '@/components/UserDropdown.vue';
 
 defineProps<{
     contentClass?: string;
@@ -23,6 +24,7 @@ defineProps<{
                 </Link>
                 <div class="flex items-center gap-3">
                     <Link
+                        v-if="!$page.props.auth.user"
                         :href="login()"
                         class="rounded-full bg-gradient-to-r from-amber-500 via-rose-500 to-violet-500 p-[2px] text-sm font-medium text-white transition hover:opacity-90"
                     >
@@ -32,18 +34,18 @@ defineProps<{
                             Log in
                         </span>
                     </Link>
-                    <Link
-                        :href="register()"
-                        class="rounded-full bg-white px-4 py-2 text-sm font-medium text-black transition hover:bg-neutral-200"
-                    >
-                        Register
-                    </Link>
+
+                    <div v-else class="relative">
+                       <UserDropdown/>
+                    </div>
                 </div>
             </div>
-            <div class="h-[2px] bg-gradient-to-r from-amber-500 via-rose-500 to-violet-500" />
+            <div
+                class="h-[2px] bg-gradient-to-r from-amber-500 via-rose-500 to-violet-500"
+            />
         </header>
         <main
-            class="flex flex-1 items-center justify-center px-6 py-10"
+            class="flex flex-1 justify-center px-6 py-10"
             :class="mainClass"
         >
             <div :class="['w-full', contentClass ?? 'max-w-sm']">
