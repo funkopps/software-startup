@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import AuthLayout from '@/layouts/AuthLayout.vue';
 import { logout } from '@/routes';
-import { send } from '@/routes/verification';
 import { Form, Head } from '@inertiajs/vue3';
 
 defineProps<{
@@ -27,23 +26,23 @@ defineProps<{
             provided during registration.
         </div>
 
-        <Form
-            v-bind="send.form()"
-            class="space-y-6 text-center"
-            v-slot="{ processing }"
-        >
-            <Button :disabled="processing" variant="secondary">
-                <Spinner v-if="processing" />
-                Resend verification email
-            </Button>
+<!--        <Form-->
+<!--            v-bind="send.form()"-->
+<!--            class="space-y-6 text-center"-->
+<!--            v-slot="{ processing }"-->
+<!--        >-->
+<!--            <Button :disabled="processing" variant="secondary">-->
+<!--                <Spinner v-if="processing" />-->
+<!--                Resend verification email-->
+<!--            </Button>-->
 
-            <TextLink
-                :href="logout()"
-                as="button"
-                class="mx-auto block text-sm"
-            >
-                Log out
-            </TextLink>
-        </Form>
+<!--            <TextLink-->
+<!--                :href="logout()"-->
+<!--                as="button"-->
+<!--                class="mx-auto block text-sm"-->
+<!--            >-->
+<!--                Log out-->
+<!--            </TextLink>-->
+<!--        </Form>-->
     </AuthLayout>
 </template>
